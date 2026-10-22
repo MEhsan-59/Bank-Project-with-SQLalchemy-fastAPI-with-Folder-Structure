@@ -57,4 +57,77 @@ Success returns an `access_token` and `token_type: "bearer"`. Invalid
 credentials return HTTP 401. Tokens contain the user ID as `sub` and expire
 after the configured number of minutes.
 
-Run the focused tests with `python -m pytest`.
+### Change password
+
+`POST /change_password` requires a valid bearer token and the current password:
+
+```json
+{
+  "old_password": "12345678",
+  "new_password": "newpassword",
+  "confirm_password": "newpassword"
+}
+```
+
+All passwords must contain 8–72 characters. The current password must match
+and the new password must match its confirmation. On success, the new password
+is stored as a bcrypt hash and can be used to log in.
+
+## Balance and money transfers
+
+All money endpoints require the bearer access token returned by login:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### Show balance
+
+`GET /check_balance` returns the authenticated user's current balance.
+
+### Deposit
+
+`POST /deposit`
+
+```json
+{
+  "amount": 500
+}
+```
+
+The amount must be a positive whole number no greater than 10,000. The
+response includes the updated balance.
+
+### Send money
+
+Transfers use a preview-and-confirm flow. First call `POST
+/send_money/preview` with the recipient's account number and a positive amount:
+
+```json
+{
+  "receiver_account_no": "AC4001",
+  "amount": 200
+}
+```
+
+The preview response includes the recipient name and a one-time
+`transaction_id`. Confirm that transfer with `POST /send_money/confirm`:
+
+```json
+{
+  "transaction_id": "<transaction_id from preview>"
+}
+```
+
+The recipient must exist, transfers to your own account are rejected, and
+available funds are rechecked when confirming. A transaction can only be
+confirmed once, and only by the account that previewed it.
+
+Run all tests from the project root or the `tests` directory:
+
+```powershell
+pytest -v
+```
+
+The root `pytest.ini` adds the project root to Python's import path, so both
+test invocation locations can import the application packages.

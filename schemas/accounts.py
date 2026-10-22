@@ -20,3 +20,14 @@ class AccountCreated(BaseModel):
 class AccessToken(BaseModel):
     access_token: str
     token_type: str
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=8, max_length=72)
+    new_password: str = Field(..., min_length=8, max_length=72)
+    confirm_password: str = Field(..., min_length=8, max_length=72)
+
+
+class ChangePasswordResponse(BaseModel):
+    success: bool
+    message: str

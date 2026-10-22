@@ -18,6 +18,13 @@ class AccountRepository:
             .first()
         )
 
+    def get_by_account_no(self, account_no: str) -> Account | None:
+        return (
+            self.db.query(Account)
+            .filter(Account.account_no == account_no)
+            .first()
+        )
+
     def create(
         self, user_id: str, user_name: str, password: str
     ) -> Account:
@@ -46,3 +53,8 @@ class AccountRepository:
         if account is None or not verify_password(password, account.password):
             return None
         return account
+
+    def update_password(self, account: Account, password_hash: str) -> None:
+        account.password = password_hash
+        self.db.commit()
+        self.db.refresh(account)

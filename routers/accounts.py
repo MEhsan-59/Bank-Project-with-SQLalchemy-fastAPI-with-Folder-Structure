@@ -8,9 +8,13 @@ from schemas.accounts import (
     AccountCreate,
     AccountCreated,
     AccountLogin,
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     AccessToken,
 )
 from services.account_service import AccountService
+from utils.dependencies import get_current_account
+from models import Account
 
 router = APIRouter()
 
@@ -56,3 +60,23 @@ def login_account(
             status_code=401, detail="Invalid user_id or password"
         )
     return AccessToken(access_token=token, token_type="bearer")
+
+
+@router.post("/change_password", response_model=ChangePasswordResponse)
+def change_password(
+    data: ChangePasswordRequest,
+    account: Account = Depends(get_current_account),
+    service: AccountService = Depends(get_account_service),
+) -> ChangePasswordResponse:
+    error = service.change_password(
+        account,
+        data.old_password,
+        data.new_password,
+        data.confirm_password,
+    )
+    if error is not None:
+        raise HTTPException(status_code=400, detail=error)
+    return ChangePasswordResponse(
+        success=True,
+        message="Password successfully changed.",
+    )

@@ -1,42 +1,5 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from core.database import Base, get_db
-from main import app
 from models import Account
 from utils.security import decode_access_token
-
-
-@pytest.fixture
-def client():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestingSessionLocal = sessionmaker(
-        autocommit=False, autoflush=False, bind=engine
-    )
-    Base.metadata.create_all(bind=engine)
-
-    def override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    app.state.test_session_local = TestingSessionLocal
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
-    del app.state.test_session_local
-    Base.metadata.drop_all(bind=engine)
-    engine.dispose()
 
 
 def test_create_account_persists_hashed_password_and_account_number(client):
@@ -81,6 +44,15 @@ def test_create_account_rejects_duplicate_user_id(client):
     assert response.json()["detail"] == "Account already exists."
 
 
+def test_create_account_validates_required_fields(client):
+    response = client.post(
+        "/create_account",
+        json={"user_id": "ab", "user_name": "", "password": "short"},
+    )
+
+    assert response.status_code == 422
+
+
 def test_login_returns_bearer_token_for_valid_credentials(client):
     client.post(
         "/create_account",
@@ -123,10 +95,105 @@ def test_login_rejects_invalid_password(client):
     assert response.json()["detail"] == "Invalid user_id or password"
 
 
-def test_create_account_validates_required_fields(client):
+def test_change_password_updates_hash_and_login_credentials(
+    client, create_account_and_get_headers
+):
+    headers = create_account_and_get_headers(client, "ihsan", "Ihsan")
     response = client.post(
-        "/create_account",
-        json={"user_id": "ab", "user_name": "", "password": "short"},
+        "/change_password",
+        headers=headers,
+        json={
+            "old_password": "12345678",
+            "new_password": "newpassword",
+            "confirm_password": "newpassword",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "success": True,
+        "message": "Password successfully changed.",
+    }
+    assert client.post(
+        "/login_account",
+        json={"user_id": "ihsan", "password": "12345678"},
+    ).status_code == 401
+    assert client.post(
+        "/login_account",
+        json={"user_id": "ihsan", "password": "newpassword"},
+    ).status_code == 200
+
+
+def test_change_password_rejects_incorrect_old_password(
+    client, create_account_and_get_headers
+):
+    headers = create_account_and_get_headers(client, "ihsan", "Ihsan")
+
+    response = client.post(
+        "/change_password",
+        headers=headers,
+        json={
+            "old_password": "wrongpass",
+            "new_password": "newpassword",
+            "confirm_password": "newpassword",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Old password does not match."
+    assert client.post(
+        "/login_account",
+        json={"user_id": "ihsan", "password": "12345678"},
+    ).status_code == 200
+
+
+def test_change_password_rejects_unmatched_confirmation(
+    client, create_account_and_get_headers
+):
+    headers = create_account_and_get_headers(client, "ihsan", "Ihsan")
+
+    response = client.post(
+        "/change_password",
+        headers=headers,
+        json={
+            "old_password": "12345678",
+            "new_password": "newpassword",
+            "confirm_password": "differentpass",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "New password and confirm password do not match."
+    )
+
+
+def test_change_password_requires_authentication(client):
+    response = client.post(
+        "/change_password",
+        json={
+            "old_password": "12345678",
+            "new_password": "newpassword",
+            "confirm_password": "newpassword",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_change_password_validates_password_lengths(
+    client, create_account_and_get_headers
+):
+    headers = create_account_and_get_headers(client, "ihsan", "Ihsan")
+
+    response = client.post(
+        "/change_password",
+        headers=headers,
+        json={
+            "old_password": "12345678",
+            "new_password": "short",
+            "confirm_password": "short",
+        },
     )
 
     assert response.status_code == 422
