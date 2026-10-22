@@ -123,6 +123,18 @@ The recipient must exist, transfers to your own account are rejected, and
 available funds are rechecked when confirming. A transaction can only be
 confirmed once, and only by the account that previewed it.
 
+## Statements
+
+Statement endpoints require the bearer access token returned by login.
+
+- `GET /statements` returns the account's complete transaction history.
+- `GET /mini_statements` returns the latest five transaction entries.
+
+Each transaction includes its type (`deposit`, `transfer_out`, or
+`transfer_in`), amount, balance after the transaction, related account when
+applicable, and timestamp. Completed transfers are recorded for both accounts.
+Failed transactions are not added to the statement.
+
 Run all tests from the project root or the `tests` directory:
 
 ```powershell

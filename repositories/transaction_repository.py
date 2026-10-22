@@ -1,9 +1,9 @@
 from uuid import uuid4
 
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
-from models import Account, PendingTransfer
+from models import Account, PendingTransfer, Transaction
 
 
 class TransactionRepository:
@@ -43,12 +43,20 @@ class TransactionRepository:
         if result.rowcount != 1:
             self.db.rollback()
             return None
-        self.db.commit()
         account = (
             self.db.query(Account)
             .filter(Account.user_id == user_id)
             .one()
         )
+        self.db.add(
+            Transaction(
+                account_no=account.account_no,
+                type="deposit",
+                amount=amount,
+                balance_after=account.balance,
+            )
+        )
+        self.db.commit()
         return account.balance
 
     def confirm_transfer(
@@ -67,6 +75,12 @@ class TransactionRepository:
         )
         if receiver is None:
             return "receiver_not_found"
+        sender_account_no = self.db.scalar(
+            select(Account.account_no).where(Account.user_id == sender_user_id)
+        )
+        if sender_account_no is None:
+            return "not_found"
+
         amount = transfer.amount
         removed = self.db.execute(
             delete(PendingTransfer).where(
@@ -99,5 +113,31 @@ class TransactionRepository:
             self.db.rollback()
             return "receiver_not_found"
 
+        sender_balance = self.db.scalar(
+            select(Account.balance).where(Account.user_id == sender_user_id)
+        )
+        receiver_balance = self.db.scalar(
+            select(Account.balance).where(
+                Account.account_no == transfer.receiver_account_no
+            )
+        )
+        self.db.add_all(
+            [
+                Transaction(
+                    account_no=sender_account_no,
+                    type="transfer_out",
+                    amount=amount,
+                    balance_after=sender_balance,
+                    related_account=transfer.receiver_account_no,
+                ),
+                Transaction(
+                    account_no=transfer.receiver_account_no,
+                    type="transfer_in",
+                    amount=amount,
+                    balance_after=receiver_balance,
+                    related_account=sender_account_no,
+                ),
+            ]
+        )
         self.db.commit()
         return "success"
