@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -5,8 +7,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from core.database import Base, get_db
+from core.config import settings
 from main import app
 from models import Account
+from utils.security import hash_password
 
 
 @pytest.fixture
@@ -75,3 +79,37 @@ def get_account_number():
             db.close()
 
     return get_number
+
+
+@pytest.fixture
+def configure_admins(tmp_path, monkeypatch):
+    def configure(admins):
+        admin_file = tmp_path / "admins.json"
+        admin_file.write_text(
+            json.dumps({"admins": admins}),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(settings, "ADMIN_FILE", str(admin_file))
+        return admin_file
+
+    return configure
+
+
+@pytest.fixture
+def admin_credentials(configure_admins):
+    username = "test-admin"
+    password = "admin-password"
+    configure_admins(
+        [
+            {
+                "username": username,
+                "password": hash_password(password),
+                "permissions": [
+                    "freeze_account",
+                    "unfreeze_account",
+                    "view_statements",
+                ],
+            }
+        ]
+    )
+    return username, password

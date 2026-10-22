@@ -12,7 +12,38 @@ SECRET_KEY=<a-long-random-secret>
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 DATABASE_URL=sqlite:///./bank.db
+ADMIN_FILE=core/admins.json
 ```
+
+Create the local admin configuration from the empty template, then generate a
+bcrypt hash for each admin password:
+
+```powershell
+Copy-Item core\admins.example.json core\admins.json
+python -c "from utils.security import hash_password; print(hash_password('replace-with-a-strong-password'))"
+```
+
+Add each admin to `core/admins.json` using the generated hash:
+
+```json
+{
+  "admins": [
+    {
+      "username": "bank-admin",
+      "password": "<bcrypt hash>",
+      "permissions": [
+        "freeze_account",
+        "unfreeze_account",
+        "view_statements"
+      ]
+    }
+  ]
+}
+```
+
+The local `core/admins.json` file is ignored by Git. Admins log in through
+`POST /login_account`; their JWT contains the `admin` role and configured
+permissions.
 
 Create the database table once and start the API:
 
@@ -122,6 +153,30 @@ The preview response includes the recipient name and a one-time
 The recipient must exist, transfers to your own account are rejected, and
 available funds are rechecked when confirming. A transaction can only be
 confirmed once, and only by the account that previewed it.
+
+## Admin endpoints
+
+Admin operations require an admin bearer token obtained from
+`POST /login_account`.
+
+- `POST /admin/freeze_account/{account_no}` freezes the specified account.
+  Frozen accounts cannot initiate money transfers.
+- `POST /admin/unfreeze_account/{account_no}` unfreezes an account and restores
+  its ability to initiate transfers.
+- `GET /admin/statements/{account_no}` returns the account's full transaction
+  history.
+
+The `freeze_account` permission is required to freeze an account, and
+the `unfreeze_account` permission is required to unfreeze one.
+`view_statements` is required to access another account's statement. Add
+permissions to the admin's `permissions` array in `core/admins.json`.
+
+For an existing database, add the account freeze flag once before using the
+updated application:
+
+```sql
+ALTER TABLE accounts ADD COLUMN freeze BOOLEAN NOT NULL DEFAULT FALSE;
+```
 
 ## Statements
 

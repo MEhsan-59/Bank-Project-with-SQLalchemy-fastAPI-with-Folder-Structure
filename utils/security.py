@@ -16,11 +16,17 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))
 
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(
+    user_id: str,
+    role: str = "user",
+    extra_claims: dict | None = None,
+) -> str:
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
-    payload = {"sub": user_id, "role": "user", "exp": expires_at}
+    payload = {"sub": user_id, "role": role, "exp": expires_at}
+    if extra_claims:
+        payload.update(extra_claims)
     return jwt.encode(
         payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )

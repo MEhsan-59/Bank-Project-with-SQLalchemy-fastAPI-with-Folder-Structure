@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Column, DateTime, Integer, String, func
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
 
 from core.database import Base
 
@@ -14,4 +14,5 @@ class Account(Base):
     password = Column(String(255), nullable=False)
     created_at = Column(DateTime(timezone=False), server_default=func.now())
     email = Column(String(100), unique=True, index=True, nullable=True)
+    freeze = Column(Boolean, nullable=False, default=False)
     

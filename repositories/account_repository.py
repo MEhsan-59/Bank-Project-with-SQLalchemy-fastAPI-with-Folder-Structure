@@ -25,6 +25,22 @@ class AccountRepository:
             .first()
         )
 
+    def freeze_account(self, account_no: str) -> bool:
+        account = self.get_by_account_no(account_no)
+        if account is None or account.freeze:
+            return False
+        account.freeze = True
+        self.db.commit()
+        return True
+
+    def unfreeze_account(self, account_no: str) -> bool:
+        account = self.get_by_account_no(account_no)
+        if account is None or not account.freeze:
+            return False
+        account.freeze = False
+        self.db.commit()
+        return True
+
     def create(
         self, user_id: str, user_name: str, password: str
     ) -> Account:

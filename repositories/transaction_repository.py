@@ -96,12 +96,20 @@ class TransactionRepository:
             update(Account)
             .where(
                 Account.user_id == sender_user_id,
+                Account.freeze.is_(False),
                 Account.balance >= amount,
             )
             .values(balance=Account.balance - amount)
         )
         if debited.rowcount != 1:
+            sender = (
+                self.db.query(Account)
+                .filter(Account.user_id == sender_user_id)
+                .first()
+            )
             self.db.rollback()
+            if sender is not None and sender.freeze:
+                return "account_frozen"
             return "insufficient_balance"
 
         credited = self.db.execute(

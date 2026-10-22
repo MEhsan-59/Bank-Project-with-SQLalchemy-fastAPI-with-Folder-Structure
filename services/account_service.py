@@ -1,15 +1,26 @@
 from models import Account
 from repositories.account_repository import AccountRepository
+from repositories.admin_repository import AdminRepository
 from utils.security import create_access_token, hash_password, verify_password
 
 
 class AccountService:
-    def __init__(self, repository: AccountRepository):
+    def __init__(
+        self,
+        repository: AccountRepository,
+        admin_repository: AdminRepository | None = None,
+    ):
         self.repository = repository
+        self.admin_repository = admin_repository
 
     def create_account(
         self, user_id: str, user_name: str, password: str
     ) -> Account | None:
+        if (
+            self.admin_repository is not None
+            and self.admin_repository.username_exists(user_id)
+        ):
+            return None
         if self.repository.get_by_user_id(user_id) is not None:
             return None
         return self.repository.create(user_id, user_name, password)

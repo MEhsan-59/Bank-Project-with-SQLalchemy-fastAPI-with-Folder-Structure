@@ -67,6 +67,11 @@ def preview_transfer(
             status_code=400,
             detail="You cannot send money to your own account.",
         )
+    if error == "account_frozen":
+        raise HTTPException(
+            status_code=403,
+            detail="Your account is frozen. Please contact the admin.",
+        )
     if error == "receiver_not_found":
         raise HTTPException(status_code=404, detail="Receiver account not found.")
     if error == "insufficient_balance":
@@ -101,6 +106,11 @@ def confirm_transfer(
         raise HTTPException(
             status_code=403,
             detail="This transaction does not belong to you.",
+        )
+    if result == "account_frozen":
+        raise HTTPException(
+            status_code=403,
+            detail="Your account is frozen. Please contact the admin.",
         )
     if result == "receiver_not_found":
         raise HTTPException(status_code=404, detail="Receiver account not found.")

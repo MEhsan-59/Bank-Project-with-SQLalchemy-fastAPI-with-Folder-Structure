@@ -256,6 +256,49 @@ def test_transfer_confirmation_rechecks_available_balance(
     ).json()["balance"] == 0
 
 
+def test_frozen_account_cannot_confirm_existing_transfer(
+    client,
+    admin_credentials,
+    create_account_and_get_headers,
+    get_account_number,
+):
+    username, password = admin_credentials
+    admin_login = client.post(
+        "/login_account",
+        json={"user_id": username, "password": password},
+    )
+    admin_headers = {
+        "Authorization": f"Bearer {admin_login.json()['access_token']}"
+    }
+    sender_headers = create_account_and_get_headers(
+        client, "sender", "Sender"
+    )
+    create_account_and_get_headers(client, "receiver", "Receiver")
+    client.post("/deposit", headers=sender_headers, json={"amount": 50})
+    preview = client.post(
+        "/send_money/preview",
+        headers=sender_headers,
+        json={
+            "receiver_account_no": get_account_number(client, "receiver"),
+            "amount": 10,
+        },
+    )
+    sender_account_no = get_account_number(client, "sender")
+    freeze = client.post(
+        f"/admin/freeze_account/{sender_account_no}",
+        headers=admin_headers,
+    )
+
+    confirmation = client.post(
+        "/send_money/confirm",
+        headers=sender_headers,
+        json={"transaction_id": preview.json()["transaction_id"]},
+    )
+
+    assert freeze.status_code == 200
+    assert confirmation.status_code == 403
+
+
 def test_transfer_confirmation_validates_transaction_id(
     client, create_account_and_get_headers
 ):

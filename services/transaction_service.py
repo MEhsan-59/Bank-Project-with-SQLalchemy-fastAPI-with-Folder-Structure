@@ -18,6 +18,8 @@ class TransactionService:
     def preview_transfer(
         self, sender: Account, receiver_account_no: str, amount: int
     ) -> tuple[PendingTransfer | None, str | None]:
+        if sender.freeze:
+            return None, "account_frozen"
         if sender.account_no == receiver_account_no:
             return None, "self_transfer"
 
