@@ -9,7 +9,7 @@ class TransactionItem(BaseModel):
     type: str
     amount: int
     balance_after: int
-    related_account: str | None
+    related_account: int | None
     created_at: datetime | None
 
 

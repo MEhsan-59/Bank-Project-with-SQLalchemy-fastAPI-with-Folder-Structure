@@ -5,5 +5,11 @@ python-dotenv
 bcrypt
 python-jose[cryptography]
 psycopg2-binary
+slowapi
+redis
+
+# dev
 pytest
 httpx
+pip-tools
+pip-audit

@@ -15,6 +15,7 @@ from schemas.transactions import (
 )
 from services.transaction_service import TransactionService
 from utils.dependencies import get_current_account
+from utils.exceptions import ReceiverNotFound
 
 router = APIRouter()
 
@@ -51,45 +52,23 @@ def deposit(
     )
 
 
-@router.post(
-    "/send_money/preview", response_model=TransferPreviewResponse
-)
+@router.post("/send_money/preview", response_model=TransferPreviewResponse)
 def preview_transfer(
     data: TransferPreviewRequest,
     account: Account = Depends(get_current_account),
-    service: TransactionService = Depends(get_transaction_service),
-) -> TransferPreviewResponse:
-    transfer, error = service.preview_transfer(
+    service: TransactionService = Depends(get_transaction_service),) -> TransferPreviewResponse:
+    transfer = service.preview_transfer(
         account, data.receiver_account_no, data.amount
     )
-    if error == "self_transfer":
-        raise HTTPException(
-            status_code=400,
-            detail="You cannot send money to your own account.",
-        )
-    if error == "account_frozen":
-        raise HTTPException(
-            status_code=403,
-            detail="Your account is frozen. Please contact the admin.",
-        )
-    if error == "receiver_not_found":
-        raise HTTPException(status_code=404, detail="Receiver account not found.")
-    if error == "insufficient_balance":
-        raise HTTPException(status_code=400, detail="Insufficient balance.")
-    if transfer is None:
-        raise HTTPException(status_code=500, detail="Could not prepare transfer.")
-
     receiver = service.accounts.get_by_account_no(transfer.receiver_account_no)
     if receiver is None:
-        raise HTTPException(status_code=404, detail="Receiver account not found.")
+        raise ReceiverNotFound()
     return TransferPreviewResponse(
         receiver_account_no=receiver.account_no,
         receiver_name=receiver.user_name,
         amount=transfer.amount,
         transaction_id=transfer.transfer_id,
     )
-
-
 @router.post("/send_money/confirm")
 def confirm_transfer(
     data: TransferConfirmRequest,

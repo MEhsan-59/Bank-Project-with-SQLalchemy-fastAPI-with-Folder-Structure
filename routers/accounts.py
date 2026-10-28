@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
+from slowapi import Limiter
 from core.config import settings
 from core.database import get_db
 from repositories.admin_repository import AdminRepository
@@ -18,10 +18,15 @@ from services.admin_service import AdminService
 from services.account_service import AccountService
 from utils.dependencies import get_current_account
 from models import Account
-
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 router = APIRouter()
 
-
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200/minute"],
+    headers_enabled=True,
+)
 def get_account_service(db: Session = Depends(get_db)) -> AccountService:
     return AccountService(
         AccountRepository(db),
@@ -63,7 +68,10 @@ def create_account(
 
 
 @router.post("/login_account", response_model=AccessToken)
+@limiter.limit("5/minute")
 def login_account(
+    request: Request,
+    response: Response,
     data: AccountLogin,
     service: AccountService = Depends(get_account_service),
     admin_service: AdminService = Depends(get_admin_service),

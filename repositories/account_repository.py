@@ -47,7 +47,6 @@ class AccountRepository:
         account = Account(
             user_id=user_id,
             user_name=user_name,
-            account_no=f"TEMP-{uuid4().hex}",
             balance=0,
             password=hash_password(password),
         )
@@ -56,7 +55,6 @@ class AccountRepository:
             self.db.flush()
             if account.id is None:
                 raise RuntimeError("Database did not assign an account ID.")
-            account.account_no = f"AC{3999 + account.id:04d}"
             self.db.commit()
         except IntegrityError:
             self.db.rollback()

@@ -17,12 +17,12 @@ class DepositResponse(BaseModel):
 
 
 class TransferPreviewRequest(BaseModel):
-    receiver_account_no: str = Field(..., min_length=6, max_length=20)
+    receiver_account_no: int 
     amount: int = Field(..., gt=0)
 
 
 class TransferPreviewResponse(BaseModel):
-    receiver_account_no: str
+    receiver_account_no: int
     receiver_name: str
     amount: int
     transaction_id: str
