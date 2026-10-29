@@ -4,13 +4,14 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-import logging
+from uvicorn import logging
+import core.logger_setup
 from routers.admin import router as admin_router
 from routers.accounts import router as accounts_router
 from routers.statements import router as statements_router
 from routers.transactions import router as transactions_router
 from utils.exceptions import BankError
-logger = logging.getLogger(__name__)
+logger = core.logger_setup.logger
 
 
 

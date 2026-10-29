@@ -67,8 +67,8 @@ def preview_transfer(
         receiver_account_no=receiver.account_no,
         receiver_name=receiver.user_name,
         amount=transfer.amount,
-        transaction_id=transfer.transfer_id,
-    )
+        transaction_id=transfer.transfer_id,)
+
 @router.post("/send_money/confirm")
 def confirm_transfer(
     data: TransferConfirmRequest,
@@ -76,23 +76,4 @@ def confirm_transfer(
     service: TransactionService = Depends(get_transaction_service),
 ) -> dict[str, bool | str]:
     result = service.confirm_transfer(account, data.transaction_id)
-    if result == "not_found":
-        raise HTTPException(
-            status_code=404,
-            detail="Transaction not found or already used.",
-        )
-    if result == "forbidden":
-        raise HTTPException(
-            status_code=403,
-            detail="This transaction does not belong to you.",
-        )
-    if result == "account_frozen":
-        raise HTTPException(
-            status_code=403,
-            detail="Your account is frozen. Please contact the admin.",
-        )
-    if result == "receiver_not_found":
-        raise HTTPException(status_code=404, detail="Receiver account not found.")
-    if result == "insufficient_balance":
-        raise HTTPException(status_code=400, detail="Insufficient balance.")
     return {"success": True, "message": "Money transferred successfully."}

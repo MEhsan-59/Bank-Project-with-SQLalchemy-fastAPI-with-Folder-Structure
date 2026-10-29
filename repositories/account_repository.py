@@ -1,4 +1,7 @@
-﻿from uuid import uuid4
+﻿from select import select
+from uuid import uuid4
+from sqlalchemy import select
+from sqlalchemy import update
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -72,3 +75,14 @@ class AccountRepository:
         account.password = password_hash
         self.db.commit()
         self.db.refresh(account)
+
+    def credit(self, account_no: int, amount: int) -> bool:
+        result = self.db.execute(
+            update(Account)
+            .where(Account.account_no == account_no)
+            .values(balance=Account.balance + amount)
+        )
+        return result.rowcount == 1
+    
+    def get_balance(self, account_no: int) -> float | None:
+        return self.db.scalar(select(Account.balance).where(Account.account_no == account_no))

@@ -1,21 +1,17 @@
+import logging
 from models import Account
 from repositories.account_repository import AccountRepository
 from repositories.admin_repository import AdminRepository
 from utils.security import create_access_token, hash_password, verify_password
-
+from utils.exceptions import InvalidUserIdOrPassword
 
 class AccountService:
-    def __init__(
-        self,
-        repository: AccountRepository,
-        admin_repository: AdminRepository | None = None,
-    ):
+    def __init__(self, repository: AccountRepository, admin_repository: AdminRepository | None = None):
         self.repository = repository
         self.admin_repository = admin_repository
+        self.logger = logging.getLogger(__name__)
 
-    def create_account(
-        self, user_id: str, user_name: str, password: str
-    ) -> Account | None:
+    def create_account(self, user_id: str, user_name: str, password: str) -> Account | None:
         if (
             self.admin_repository is not None
             and self.admin_repository.username_exists(user_id)
@@ -28,7 +24,8 @@ class AccountService:
     def login(self, user_id: str, password: str) -> str | None:
         account = self.repository.authenticate(user_id, password)
         if account is None:
-            return None
+            self.logger.warning("Failed login attempt for user_id: %s", user_id)
+            raise InvalidUserIdOrPassword()
         return create_access_token(account.user_id)
 
     def change_password(
@@ -39,8 +36,10 @@ class AccountService:
         confirm_password: str,
     ) -> str | None:
         if not verify_password(old_password, account.password):
+            self.logger.warning("Failed password change attempt for account %s: old password does not match.", account.account_no)
             return "Old password does not match."
         if new_password != confirm_password:
+            self.logger.warning("Failed password change attempt for account %s: new password and confirm password do not match.", account.account_no)
             return "New password and confirm password do not match."
 
         self.repository.update_password(account, hash_password(new_password))

@@ -22,21 +22,12 @@ class AdminRepository:
         return admins
 
     def get_admin_by_username(self, username: str) -> dict[str, Any] | None:
-        return next(
-            (
-                admin
-                for admin in self.load_admins()
-                if admin.get("username") == username
-            ),
-            None,
-        )
+        return next((admin for admin in self.load_admins() if admin.get("username") == username),None,)
 
     def username_exists(self, username: str) -> bool:
         return self.get_admin_by_username(username) is not None
 
-    def authenticate(
-        self, username: str, password: str
-    ) -> dict[str, Any] | None:
+    def authenticate(self, username: str, password: str) -> dict[str, Any] | None:
         admin = self.get_admin_by_username(username)
         if admin is None:
             return None

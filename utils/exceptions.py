@@ -1,4 +1,4 @@
-# app/exceptions.py
+# utils/exceptions.py
 class BankError(Exception):
     status_code = 400
     message = "Bad request."
@@ -12,7 +12,6 @@ class BankError(Exception):
 class InsufficientBalance(BankError):
     status_code = 400
     message = "Insufficient balance."
-
 
 class ReceiverNotFound(BankError):
     status_code = 404
@@ -46,3 +45,7 @@ class ForbiddenAction(BankError):
 class TransferIdNotFound(BankError):
     status_code = 404
     message = "Transfer ID not found."
+
+class InvalidUserIdOrPassword(BankError):
+    status_code = 401
+    message = "Invalid user_id or password."

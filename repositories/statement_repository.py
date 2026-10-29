@@ -1,7 +1,5 @@
 from sqlalchemy.orm import Session
-
 from models import Transaction
-
 
 class StatementRepository:
     def __init__(self, db: Session):

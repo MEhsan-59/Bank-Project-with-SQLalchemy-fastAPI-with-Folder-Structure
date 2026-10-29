@@ -54,6 +54,12 @@ uvicorn main:app --reload
 
 Interactive API documentation is available at `/docs`.
 
+## Logging
+
+Account and transfer operations, including rejected attempts, are logged to
+`app.log` in the current working directory. Passwords and request bodies are
+not logged.
+
 ## Account endpoints
 
 ### Create account

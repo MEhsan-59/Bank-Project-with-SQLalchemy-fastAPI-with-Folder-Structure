@@ -79,12 +79,7 @@ def login_account(
     admin_token = admin_service.login(data.user_id, data.password)
     if admin_token is not None:
         return AccessToken(access_token=admin_token, token_type="bearer")
-
     token = service.login(data.user_id, data.password)
-    if token is None:
-        raise HTTPException(
-            status_code=401, detail="Invalid user_id or password"
-        )
     return AccessToken(access_token=token, token_type="bearer")
 
 

@@ -1,30 +1,46 @@
 import json
+import os
+from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+
+load_dotenv(Path(__file__).resolve().parent.parent / "core" / ".env")
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+if not TEST_DATABASE_URL:
+    raise RuntimeError(
+        "Add this line to core/.env first: "
+        "TEST_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/bank_test"
+    )
+if "test" not in (make_url(TEST_DATABASE_URL).database or "").lower():
+    raise RuntimeError(
+        "The database name in TEST_DATABASE_URL must contain 'test' "
+        "(the tests delete all tables in it)."
+    )
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 
 from core.database import Base, get_db
 from core.config import settings
 from main import app
 from models import Account
+from routers.accounts import limiter
 from utils.security import hash_password
 
 
 @pytest.fixture
 def client():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    limiter.reset()
+    engine = create_engine(TEST_DATABASE_URL)
     testing_session_local = sessionmaker(
         autocommit=False,
         autoflush=False,
         bind=engine,
     )
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     def override_get_db():

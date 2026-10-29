@@ -56,18 +56,7 @@ class TransactionRepository:
         )
         return result.rowcount == 1
 
-    def credit(self, account_no: int, amount: int) -> bool:
-        result = self.db.execute(
-            update(Account)
-            .where(Account.account_no == account_no)
-            .values(balance=Account.balance + amount)
-        )
-        return result.rowcount == 1
-
-    def get_balance(self, account_no: int) -> float | None:
-        return self.db.scalar(
-            select(Account.balance).where(Account.account_no == account_no)
-        )
+    
 
     def add_transaction(
         self,

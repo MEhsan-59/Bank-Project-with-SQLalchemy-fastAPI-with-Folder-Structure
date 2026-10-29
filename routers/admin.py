@@ -33,7 +33,7 @@ def get_statement_service(
     response_model=AdminFreezeResponse,
 )
 def freeze_account(
-    account_no: str,
+    account_no: int,
     _: dict = Depends(require_admin_permission("freeze_account")),
     service: AdminService = Depends(get_admin_service),
 ) -> AdminFreezeResponse:
@@ -53,7 +53,7 @@ def freeze_account(
     response_model=AdminFreezeResponse,
 )
 def unfreeze_account(
-    account_no: str,
+    account_no: int,
     _: dict = Depends(require_admin_permission("unfreeze_account")),
     service: AdminService = Depends(get_admin_service),
 ) -> AdminFreezeResponse:
@@ -73,7 +73,7 @@ def unfreeze_account(
     response_model=StatementResponse,
 )
 def get_account_statement(
-    account_no: str,
+    account_no: int,
     _: dict = Depends(require_admin_permission("view_statements")),
     service: StatementService = Depends(get_statement_service),
     admin_service: AdminService = Depends(get_admin_service),
